@@ -57,12 +57,26 @@ activity#com.example.android.bluetoothlegatt.DeviceControlActivity
 ADDED from AndroidManifest.xml:48:9
 	android:name
 		ADDED from AndroidManifest.xml:48:19
-service#com.example.android.bluetoothlegatt.BluetoothLeService
+activity#com.example.android.bluetoothlegatt.NotificationView
 ADDED from AndroidManifest.xml:50:9
-	android:enabled
-		ADDED from AndroidManifest.xml:50:53
+	android:label
+		ADDED from AndroidManifest.xml:51:13
+	android:parentActivityName
+		ADDED from AndroidManifest.xml:52:13
 	android:name
-		ADDED from AndroidManifest.xml:50:18
+		ADDED from AndroidManifest.xml:50:19
+meta-data#android.support.PARENT_ACTIVITY
+ADDED from AndroidManifest.xml:53:13
+	android:value
+		ADDED from AndroidManifest.xml:55:17
+	android:name
+		ADDED from AndroidManifest.xml:54:17
+service#com.example.android.bluetoothlegatt.BluetoothLeService
+ADDED from AndroidManifest.xml:58:9
+	android:enabled
+		ADDED from AndroidManifest.xml:58:53
+	android:name
+		ADDED from AndroidManifest.xml:58:18
 uses-sdk
 INJECTED from AndroidManifest.xml:0:0 reason: use-sdk injection requested
 MERGED from com.android.support:support-v4:23.1.0:20:5

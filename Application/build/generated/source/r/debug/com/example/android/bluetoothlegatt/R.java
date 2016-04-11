@@ -140,22 +140,51 @@ containing a value of this type.
     public static final class id {
         public static final int button=0x7f090001;
         public static final int button2=0x7f090000;
-        public static final int connection_state=0x7f090004;
+        public static final int connection_state=0x7f09001f;
         public static final int data_value=0x7f090002;
-        public static final int device_address=0x7f090003;
-        public static final int device_name=0x7f090006;
-        public static final int gatt_services_list=0x7f090005;
-        public static final int menu_connect=0x7f090008;
-        public static final int menu_disconnect=0x7f090009;
-        public static final int menu_refresh=0x7f090007;
-        public static final int menu_scan=0x7f09000a;
-        public static final int menu_stop=0x7f09000b;
+        public static final int device_address=0x7f09001e;
+        public static final int device_name=0x7f090021;
+        public static final int emptyLineInten=0x7f090012;
+        public static final int emptyLinePitch=0x7f09000a;
+        public static final int emptyLineRoll=0x7f09000f;
+        public static final int emptyLineRoll1=0x7f09000e;
+        public static final int emptyLineSpeed=0x7f090016;
+        public static final int emptyLineTemp=0x7f090006;
+        public static final int gatt_services_list=0x7f090020;
+        public static final int intenBarValueLeft=0x7f090015;
+        public static final int intenBarValueRight=0x7f090018;
+        public static final int intensityBar=0x7f090014;
+        public static final int intensityCurr=0x7f090017;
+        public static final int intensityText=0x7f090013;
+        public static final int ledText=0x7f090010;
+        public static final int menu_connect=0x7f090023;
+        public static final int menu_disconnect=0x7f090024;
+        public static final int menu_refresh=0x7f090022;
+        public static final int menu_scan=0x7f090025;
+        public static final int menu_stop=0x7f090026;
+        public static final int onOff=0x7f090011;
+        public static final int pitch=0x7f090007;
+        public static final int pitchBox=0x7f090009;
+        public static final int pitchText=0x7f090008;
+        public static final int roll=0x7f09000b;
+        public static final int rollBox=0x7f09000d;
+        public static final int rollText=0x7f09000c;
+        public static final int speedBar=0x7f09001a;
+        public static final int speedBarValueLeft=0x7f09001b;
+        public static final int speedBarValueRight=0x7f09001d;
+        public static final int speedCurrent=0x7f09001c;
+        public static final int speedText=0x7f090019;
+        public static final int tempBox=0x7f090005;
+        public static final int tempText=0x7f090004;
+        public static final int temperature=0x7f090003;
     }
     public static final class layout {
         public static final int actionbar_indeterminate_progress=0x7f030000;
         public static final int button_control=0x7f030001;
-        public static final int gatt_services_characteristics=0x7f030002;
-        public static final int listitem_device=0x7f030003;
+        public static final int custom_layout=0x7f030002;
+        public static final int gatt_services_characteristics=0x7f030003;
+        public static final int listitem_device=0x7f030004;
+        public static final int notification=0x7f030005;
     }
     public static final class menu {
         public static final int gatt_services=0x7f080000;

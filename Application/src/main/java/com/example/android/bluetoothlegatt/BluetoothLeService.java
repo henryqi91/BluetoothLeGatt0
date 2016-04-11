@@ -63,13 +63,17 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
     public final static String ACTION_DATA_WRITETOSEND =
             "com.example.bluetooth.le.ACTION_DATAWRITETOSEND";
+    public final static String ACTION_TONOTIFY =
+            "com.example.bluetooth.le.ACTION_TONOTIFY";
 
-    public final static String EXTRA_DATA =
-            "com.example.bluetooth.le.EXTRA_DATA";
-    public final static String EXTRA_ROLLDATA =
+    public final static String EXTRA_ROLL_DATA =
             "com.example.bluetooth.le.ROLL_DATA";
-    public final static String EXTRA_PITCHDATA =
+    public final static String EXTRA_PITCH_DATA =
             "com.example.bluetooth.le.PITCH_DATA";
+    public final static String EXTRA_TEMP_DATA =
+            "com.example.bluetooth.le.TEMP_DATA";
+    public final static String EXTRA_TONOTIFY =
+            "com.example.bluetooth.le.TONOTIFY";
 
     public final static UUID UUID_HEART_RATE_MEASUREMENT =
             UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
@@ -83,10 +87,12 @@ public class BluetoothLeService extends Service {
 
     public final static UUID UUID_SAMPLE_SERVICE =
             UUID.fromString(SampleGattAttributes.SAMPLE_SERVICE);
+    public final static UUID UUID_DT_SERVICE =
+            UUID.fromString(SampleGattAttributes.DT_SERVICE);
     public final static UUID UUID_SAMPLE_CHARA =
             UUID.fromString(SampleGattAttributes.SAMPLE_CHARA);
-    public final static UUID UUID_SAMPLE_FREE_FALL =
-            UUID.fromString(SampleGattAttributes.SAMPLE_FREE_FALL);
+    public final static UUID UUID_DOUBLE_TAP_CHARA =
+            UUID.fromString(SampleGattAttributes.DOUBLE_TAP_CHARA);
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
@@ -134,6 +140,16 @@ public class BluetoothLeService extends Service {
             super.onCharacteristicWrite(gatt, characteristic, status);
             broadcastUpdate(ACTION_DATA_WRITETOSEND, characteristic);
         }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status){
+            super.onDescriptorWrite( gatt,  descriptor,  status);
+            if(status == BluetoothGatt.GATT_SUCCESS){
+                if(gatt.getDevice().toString().equals("03:80:E1:00:34:08")){
+                    broadcastUpdate(ACTION_TONOTIFY,gatt.getService(UUID_DT_SERVICE).getCharacteristic(UUID_DOUBLE_TAP_CHARA));
+                }
+            }
+        }
     };
 
     private void broadcastUpdate(final String action) {
@@ -145,23 +161,47 @@ public class BluetoothLeService extends Service {
                                  final BluetoothGattCharacteristic characteristic) {
         final Intent intent = new Intent(action);
 
+        if(characteristic.getUuid().equals(UUID_DOUBLE_TAP_CHARA)){
+            intent.putExtra(EXTRA_TONOTIFY,true);
+        }
         if (UUID_TEMP_MEASUREMENT.equals(characteristic.getUuid())) {
-            final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                int length = data.length;
-                short value = (short) (data[1]<<8 | data[0]&0xff);
+            final byte[] dataTemp = characteristic.getValue();
+            if (dataTemp != null && dataTemp.length > 0) {
+                final StringBuilder stringBuilder = new StringBuilder(dataTemp.length);
+                short value = (short) (dataTemp[1]<<8 | dataTemp[0]&0xff);
                 stringBuilder.append(String.format("%d.%d "+"\u2103", value/100,value%100));
                 //celsius: \u2103; degree:\u00b0
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n"
+                intent.putExtra(EXTRA_TEMP_DATA, new String(dataTemp) + "\n"
                         + stringBuilder.toString());
+                sendBroadcast(intent);
             }
         }
-//        else if(UUID_SAMPLE_CHARA.equals(characteristic.getUuid())){
-//            byte[] value = new byte[1];
-//            value[0] = (byte)(21 & 0xff);
-//            characteristic.setValue(value);
-//        }
+        if(UUID_PITCH_MEASUREMENT.equals(characteristic.getUuid())) {
+            final byte[] dataPitch = characteristic.getValue();
+            if (dataPitch != null && dataPitch.length > 0) {
+                final StringBuilder stringBuilder = new StringBuilder(dataPitch.length);
+                short value = (short) (dataPitch[1] << 8 | dataPitch[0] & 0xff);
+                stringBuilder.append(String.format("%d.%d " + "\u00b0", value / 100, value % 100));
+                //celsius: \u2103; degree:\u00b0
+                intent.putExtra(EXTRA_PITCH_DATA, new String(dataPitch) + "\n"
+                        + stringBuilder.toString());
+                sendBroadcast(intent);
+            }
+        }
+            if(UUID_ROLL_MEASUREMENT.equals(characteristic.getUuid())){
+                final byte[] dataRoll = characteristic.getValue();
+                if (dataRoll != null && dataRoll.length > 0) {
+                    final StringBuilder stringBuilder = new StringBuilder(dataRoll.length);
+                    short value = (short) (dataRoll[1] << 8 | dataRoll[0] & 0xff);
+//                    short newValue =(short) (value & 0xffff);
+//                    stringBuilder.append(String.format("%d.%d " + "\u00b0", newValue / 100, newValue % 100));
+                    stringBuilder.append(String.format("%d.%d " + "\u00b0", value / 100, value % 100));
+                    //celsius: \u2103; degree:\u00b0
+                    intent.putExtra(EXTRA_ROLL_DATA, new String(dataRoll) + "\n"
+                            + stringBuilder.toString());
+                    sendBroadcast(intent);
+                }
+            }
         sendBroadcast(intent);
     }
 
@@ -332,21 +372,63 @@ public class BluetoothLeService extends Service {
         return mBluetoothGatt.getServices();
     }
 //    /*Custom Read/write*/
-    public void readCustomCharacteristic() {
+    public void readRollCharacteristic() {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
         /*check if the service is available on the device*/
-        BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString("42821a40-e477-11e2-82d0-0002a5d5c51b"));
+        BluetoothGattService mCustomService = mBluetoothGatt.getService(
+                UUID.fromString("42821a40-e477-11e2-82d0-0002a5d5c51b")); // Service for Temp,Roll,Pitch
         if(mCustomService == null){
             Log.w(TAG, "Custom BLE Service not found");
             return;
         }
         /*get the read characteristic from the service*/
-        BluetoothGattCharacteristic mReadCharacteristic = mCustomService.getCharacteristic(UUID_TEMP_MEASUREMENT);
-        if(mBluetoothGatt.readCharacteristic(mReadCharacteristic) == false){
-            Log.w(TAG, "Failed to read characteristic");
+        BluetoothGattCharacteristic mRollChara = mCustomService.getCharacteristic(UUID_ROLL_MEASUREMENT);
+
+        if(!mBluetoothGatt.readCharacteristic(mRollChara)){
+            Log.w(TAG, "Failed to read Roll characteristic");
+        }
+    }
+
+    public void readPitchCharacteristic() {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        /*check if the service is available on the device*/
+        BluetoothGattService mCustomService = mBluetoothGatt.getService(
+                UUID.fromString("42821a40-e477-11e2-82d0-0002a5d5c51b")); // Service for Temp,Roll,Pitch
+        if(mCustomService == null){
+            Log.w(TAG, "Custom BLE Service not found");
+            return;
+        }
+        /*get the read characteristic from the service*/
+        BluetoothGattCharacteristic mPitchChara = mCustomService.getCharacteristic(UUID_PITCH_MEASUREMENT);
+
+        if(!mBluetoothGatt.readCharacteristic(mPitchChara)){
+            Log.w(TAG, "Failed to read Pitch characteristic");
+        }
+    }
+
+    public void readTempCharacteristic() {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        /*check if the service is available on the device*/
+        BluetoothGattService mCustomService = mBluetoothGatt.getService(
+                UUID.fromString("42821a40-e477-11e2-82d0-0002a5d5c51b")); // Service for Temp,Roll,Pitch
+        if(mCustomService == null){
+            Log.w(TAG, "Custom BLE Service not found");
+            return;
+        }
+        /*get the read characteristic from the service*/
+        BluetoothGattCharacteristic mTempChara = mCustomService.getCharacteristic(UUID_TEMP_MEASUREMENT);
+
+        if(!mBluetoothGatt.readCharacteristic(mTempChara)){
+            Log.w(TAG, "Failed to read Temperature characteristic");
         }
     }
 
@@ -357,25 +439,44 @@ public class BluetoothLeService extends Service {
         }
         /*check if the service is available on the device*/
         BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID_SAMPLE_SERVICE);
-//        BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString("42821a40-e477-11e2-82d0-0002a5d5c51b"));
         if(mCustomService == null){
             Log.w(TAG, "Custom BLE Service not found");
             return;
         }
         /*get the write characteristic from the service*/
         BluetoothGattCharacteristic mWriteCharacteristic = mCustomService.getCharacteristic(UUID_SAMPLE_CHARA);
-//        BluetoothGattCharacteristic mWriteCharacteristic = mCustomService.getCharacteristic(UUID_TEMP_MEASUREMENT);
-        int permi = mWriteCharacteristic.getPermissions();
-        int prop = mWriteCharacteristic.getProperties();
 
         if(mWriteCharacteristic == null){
             Log.w(TAG, "Custom BLE characteristic not found");
         }
-//        mWriteCharacteristic.setValue("0x11");
-//        mWriteCharacteristic.setValue(0x11, BluetoothGattCharacteristic.FORMAT_UINT8,0);
         mWriteCharacteristic.setValue(value,android.bluetooth.BluetoothGattCharacteristic.FORMAT_UINT8,0);
         if(mBluetoothGatt.writeCharacteristic(mWriteCharacteristic) == false){
             Log.w(TAG, "Failed to write characteristic");
         }
+    }
+
+    public void setDoubleTapCharacteristic(boolean enabled){
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+
+        BluetoothGattService mCustomService = mBluetoothGatt.getService(
+                UUID_DT_SERVICE);
+        if(mCustomService == null){
+            Log.w(TAG, "Double Tap Service not found");
+            return;
+        }
+        BluetoothGattCharacteristic mDtChara = mCustomService.getCharacteristic(
+                UUID_DOUBLE_TAP_CHARA);
+        mBluetoothGatt.setCharacteristicNotification(mDtChara,enabled);
+
+        if(UUID_DOUBLE_TAP_CHARA.equals(mDtChara.getUuid())){
+            BluetoothGattDescriptor descriptor = mDtChara.getDescriptor(
+                    UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            mBluetoothGatt.writeDescriptor(descriptor);
+        }
+
     }
 }

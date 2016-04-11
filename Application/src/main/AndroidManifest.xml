@@ -47,6 +47,10 @@
 
         <activity android:name=".DeviceControlActivity"/>
 
+        <activity android:name=".NotificationView"
+            android:label="Double Tap Notification" >
+        </activity>
+
         <service android:name=".BluetoothLeService" android:enabled="true"/>
     </application>
 

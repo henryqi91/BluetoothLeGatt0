@@ -23,14 +23,19 @@ import java.util.HashMap;
  */
 public class SampleGattAttributes {
     private static HashMap<String, String> attributes = new HashMap();
-    public static String HEART_RATE_MEASUREMENT =   "00002a37-0000-1000-8000-00805f9b34fb";
-    public static String TEMP_MEASUREMENT =         "a32e5520-e477-11e2-a9e3-0002a5d5c51b";
-    public static String PITCH_MEASUREMENT =        "cd20c480-e48b-11e2-840b-0002a5d5c51b";
-    public static String ROLL_MEASUREMENT =         "01c50b60-e48c-11e2-a073-0002a5d5c51b";
 
-    public static String SAMPLE_SERVICE =           "02366e80-cf3a-11e1-9ab4-0002a5d5c51b";
-    public static String SAMPLE_CHARA =             "340a1b80-cf4b-11e1-ac36-0002a5d5c51b";
-    public static String SAMPLE_FREE_FALL =         "e23e78a0-cf4a-11e1-8ffc-0002a5d5c51b";
+    //measurement - read
+    public static String HEART_RATE_MEASUREMENT =       "00002a37-0000-1000-8000-00805f9b34fb";
+    public static String TEMP_MEASUREMENT =             "a32e5520-e477-11e2-a9e3-0002a5d5c51b";
+    public static String PITCH_MEASUREMENT =            "cd20c480-e48b-11e2-840b-0002a5d5c51b";
+    public static String ROLL_MEASUREMENT =             "01c50b60-e48c-11e2-a073-0002a5d5c51b";
+
+    //double tap - notify
+    public static String DT_SERVICE =                   "02366e80-cf3a-11e1-9ab4-0002a5d5c51b";
+    public static String DOUBLE_TAP_CHARA =             "e23e78a0-cf4a-11e1-8ffc-0002a5d5c51b";
+    //to write - write
+    public static String SAMPLE_SERVICE =               "8263e608-cf3a-11e1-9ab4-0002a5d5c51b";
+    public static String SAMPLE_CHARA =                 "340a1b80-cf4b-11e1-ac36-0002a5d5c51b";
 
     public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
 
@@ -45,6 +50,7 @@ public class SampleGattAttributes {
         attributes.put(TEMP_MEASUREMENT, "temperature measurement");
         attributes.put(PITCH_MEASUREMENT, "pitch measurement");
         attributes.put(ROLL_MEASUREMENT, "roll measurement");
+        attributes.put(DOUBLE_TAP_CHARA, "double tap notification");
     }
 
     public static String lookup(String uuid, String defaultName) {
