@@ -158,11 +158,11 @@ public class DeviceControlActivity extends Activity {
             Log.d(TAG, "Connect request result=" + result);
         }
 
-        //mDtHandler.removeCallbacks(mDtRunnable);
+        mDtHandler.removeCallbacks(mDtRunnable);
         mWriteHandler.postDelayed(mWriteRunnable, 200);
 
         mTempHandler.postDelayed(mTempRunnable, 200);
-        mRollHandler.postDelayed(mRollRunnable,250);
+        mRollHandler.postDelayed(mRollRunnable,150);
         mPitchHandler.postDelayed(mPitchRunnable, 300);
 
     }
@@ -176,7 +176,7 @@ public class DeviceControlActivity extends Activity {
     @Override
     protected void onStop(){
         super.onStop();
-        //mDtHandler.postDelayed(mDtRunnable, 50);
+        mDtHandler.postDelayed(mDtRunnable, 50);
         mWriteHandler.removeCallbacks(mWriteRunnable, 200);
 
         mTempHandler.removeCallbacks(mTempRunnable);
@@ -225,7 +225,7 @@ public class DeviceControlActivity extends Activity {
         public void run() {
             try {
                 mBluetoothLeService.readRollCharacteristic();
-                mRollHandler.postDelayed(this, 200);
+                mRollHandler.postDelayed(this, 150);
                 Log.d("mRollHandler", "Calling on DCA thread");
             } catch (Exception e){
                 e.printStackTrace();
@@ -275,7 +275,7 @@ public class DeviceControlActivity extends Activity {
         public void run() {
             try{
                 mBluetoothLeService.writeCharacteristic(
-                        intensityBar.getProgress(),speedBar.getProgress());
+                        intensityBar.getProgress()*pressFlag,speedBar.getProgress());
 //                mBluetoothLeService.writeCharacteristic(intensityBar.getProgress());
                 mWriteHandler.postDelayed(this, 200);
                 Log.d("mWriteHandler", "Call on DCA thread");
@@ -337,6 +337,16 @@ public class DeviceControlActivity extends Activity {
         mTempValue = (TextView) findViewById(R.id.tempBox);
 
         ledSwitch = (Button)findViewById(R.id.ledSwitch);
+        ledSwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(pressFlag == 0){
+                    pressFlag = 1;
+                }else{
+                    pressFlag = 0;
+                }
+            }
+        });
 
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
@@ -385,17 +395,4 @@ public class DeviceControlActivity extends Activity {
         });
     }
 
-    private int isLedPressed(Button ledSwitch) {
-        if (ledSwitch.isPressed() == true) {
-            if (pressFlag == 0) {
-                pressFlag = 1;
-                return 1;
-            } else {
-                pressFlag = 0;
-                return 0;
-            }
-        } else {
-            return pressFlag;
-        }
-    }
 }
