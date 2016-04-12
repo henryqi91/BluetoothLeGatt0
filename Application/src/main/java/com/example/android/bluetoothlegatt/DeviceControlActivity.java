@@ -33,6 +33,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.PowerManager;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.Menu;
@@ -61,17 +62,13 @@ public class DeviceControlActivity extends Activity {
     //UI
     private SeekBar speedBar,intensityBar;
     private TextView speedBarValue,intensityBarValue,mRollValue,mPitchValue,mTempValue;
-    //Notification
-    private static final int mId = 1;
+
     //BLE
     private Handler mRollHandler,mPitchHandler,mTempHandler,mDtHandler,mWriteHandler;
     private TextView mConnectionState;
     private String mDeviceName;
     private String mDeviceAddress;
-    private ExpandableListView mGattServicesList;
     private BluetoothLeService mBluetoothLeService;
-    private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
-            new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private boolean mConnected = false;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
@@ -96,6 +93,9 @@ public class DeviceControlActivity extends Activity {
             mBluetoothLeService = null;
         }
     };
+    // Notification
+//    private int mPitchTestValue = 130;
+    private int isToNotify = 0;
 
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
@@ -116,52 +116,16 @@ public class DeviceControlActivity extends Activity {
                 updateConnectionState(R.string.disconnected);
                 invalidateOptionsMenu();
                 clearUI();
-            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
-                // Show all the supported services and characteristics on the user interface.
-                //displayGattServices(mBluetoothLeService.getSupportedGattServices());
-            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+            }  else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 displayRollData(intent.getStringExtra(BluetoothLeService.EXTRA_ROLL_DATA));
                 displayPitchData(intent.getStringExtra(BluetoothLeService.EXTRA_PITCH_DATA));
                 displayTempData(intent.getStringExtra(BluetoothLeService.EXTRA_TEMP_DATA));
-            } else if(BluetoothLeService.ACTION_TONOTIFY.equals(action)){
-                toNotify();
             }
+//            else if (BluetoothLeService.ACTION_TONOTIFY.equals(action)){
+//                isToNotify = intent.getBooleanExtra(BluetoothLeService.EXTRA_TONOTIFY,true);
+//            }
         }
     };
-
-    // If a given GATT characteristic is selected, check for supported features.  This sample
-    // demonstrates 'Read' and 'Notify' features.  See
-    // http://d.android.com/reference/android/bluetooth/BluetoothGatt.html for the complete
-    // list of supported characteristic features.
-//    private final ExpandableListView.OnChildClickListener servicesListClickListner =
-//        new ExpandableListView.OnChildClickListener() {
-//            @Override
-//            public boolean onChildClick(ExpandableListView parent, View v, int groupPosition,
-//                                        int childPosition, long id) {
-//                if (mGattCharacteristics != null) {
-//                    final BluetoothGattCharacteristic characteristic =
-//                            mGattCharacteristics.get(groupPosition).get(childPosition);
-//                    final int charaProp = characteristic.getProperties();
-//                    if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-//                        // If there is an active notification on a characteristic, clear
-//                        // it first so it doesn't update the data field on the user interface.
-//                        if (mNotifyCharacteristic != null) {
-//                            mBluetoothLeService.setCharacteristicNotification(
-//                                    mNotifyCharacteristic, false);
-//                            mNotifyCharacteristic = null;
-//                        }
-//                        mBluetoothLeService.readCharacteristic(characteristic);
-//                    }
-//                    if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-//                        mNotifyCharacteristic = characteristic;
-//                        mBluetoothLeService.setCharacteristicNotification(
-//                                characteristic, true);
-//                    }
-//                    return true;
-//                }
-//                return false;
-//            }
-//    };
 
     private void clearUI() {
 //        mGattServicesList.setAdapter((SimpleExpandableListAdapter) null);
@@ -178,7 +142,10 @@ public class DeviceControlActivity extends Activity {
         mRollHandler = new Handler();
         mPitchHandler = new Handler();
         mTempHandler = new Handler();
+
         mDtHandler = new Handler();
+
+        mWriteHandler = new Handler();
 
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
@@ -190,10 +157,6 @@ public class DeviceControlActivity extends Activity {
         initUI();
         clearUI();
 
-        mTempHandler.post(mTempRunnable);
-        mPitchHandler.post(mPitchRunnable);
-        mRollHandler.post(mRollRunnable);
-
     }
 
     @Override
@@ -204,7 +167,9 @@ public class DeviceControlActivity extends Activity {
             final boolean result = mBluetoothLeService.connect(mDeviceAddress);
             Log.d(TAG, "Connect request result=" + result);
         }
+
         mDtHandler.removeCallbacks(mDtRunnable);
+
         mTempHandler.postDelayed(mTempRunnable,200);
         mRollHandler.postDelayed(mRollRunnable,250);
         mPitchHandler.postDelayed(mPitchRunnable, 300);
@@ -219,7 +184,9 @@ public class DeviceControlActivity extends Activity {
     @Override
     protected void onStop(){
         super.onStop();
-        mDtHandler.post(mDtRunnable);
+//        mDtHandler.post(mDtRunnable);
+        mWriteHandler.postDelayed(mWriteRunnable,2000);
+
         mTempHandler.removeCallbacks(mTempRunnable);
         mPitchHandler.removeCallbacks(mPitchRunnable);
         mRollHandler.removeCallbacks(mRollRunnable);
@@ -303,10 +270,22 @@ public class DeviceControlActivity extends Activity {
         public void run() {
             try {
                 mBluetoothLeService.setDoubleTapCharacteristic(true);
-
-                mTempHandler.postDelayed(this, 50);
+                mDtHandler.postDelayed(this, 10);
                 Log.d("mDtHandler", "Calling on DCA thread");
             } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    };
+
+    private Runnable mWriteRunnable = new Runnable() {
+        @Override
+        public void run() {
+            try{
+                mBluetoothLeService.writeCharacteristic(0x12);
+                mWriteHandler.postDelayed(this, 3000);
+                Log.d("mWriteHandler", "Call on DCA thread");
+            }catch(Exception e){
                 e.printStackTrace();
             }
         }
@@ -346,7 +325,8 @@ public class DeviceControlActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
-//        intentFilter.addAction(BluetoothLeService.ACTION_DATA_WRITETOSEND);
+        intentFilter.addAction(BluetoothLeService.ACTION_TONOTIFY);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_WRITETOSEND);
         return intentFilter;
     }
 
@@ -406,35 +386,6 @@ public class DeviceControlActivity extends Activity {
                 intensityBarValue.setText("Current value: " + progress);
             }
         });
-
-
-
     }
 
-    private void toNotify(){
-//        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
-//        mBuilder.setContentTitle("DT explicit intent");
-//        mBuilder.setContentText("double tap detected!");
-//        mBuilder.setSmallIcon(R.drawable.ic_launcher);
-//
-//        Intent resultIntent = new Intent(this,DeviceControlActivity.class);
-//
-//        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-//        stackBuilder.addParentStack(DeviceControlActivity.class);
-//        stackBuilder.addNextIntent(resultIntent);
-//
-//        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
-//                0,PendingIntent.FLAG_UPDATE_CURRENT);
-//        mBuilder.setContentIntent(resultPendingIntent);
-//        NotificationManager mNotificationManager =
-//                (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-        NotificationManager notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-
-        Notification noti = new Notification(R.drawable.ic_launcher,"Double tap Detected!",System.currentTimeMillis());
-        Intent notiIntent = new Intent(this,NotificationView.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,0,notiIntent,0);
-
-        notificationManager.notify(mId,noti);
-
-    }
 }

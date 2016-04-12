@@ -69,7 +69,6 @@ int layout button_control 0x7f030001
 int layout custom_layout 0x7f030002
 int layout gatt_services_characteristics 0x7f030003
 int layout listitem_device 0x7f030004
-int layout notification 0x7f030005
 int menu gatt_services 0x7f080000
 int menu main 0x7f080001
 int string app_name 0x7f070000

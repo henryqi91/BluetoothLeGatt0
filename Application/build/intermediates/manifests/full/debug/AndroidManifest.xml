@@ -38,6 +38,7 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:icon="@drawable/ic_launcher"
@@ -53,14 +54,6 @@
             </intent-filter>
         </activity>
         <activity android:name="com.example.android.bluetoothlegatt.DeviceControlActivity" />
-        <activity
-            android:name="com.example.android.bluetoothlegatt.NotificationView"
-            android:label="Details of Notification"
-            android:parentActivityName="com.example.android.bluetoothlegatt.DeviceControlActivity" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".DeviceControlActivity" />
-        </activity>
 
         <service
             android:name="com.example.android.bluetoothlegatt.BluetoothLeService"

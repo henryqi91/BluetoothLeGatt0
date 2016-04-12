@@ -184,7 +184,6 @@ containing a value of this type.
         public static final int custom_layout=0x7f030002;
         public static final int gatt_services_characteristics=0x7f030003;
         public static final int listitem_device=0x7f030004;
-        public static final int notification=0x7f030005;
     }
     public static final class menu {
         public static final int gatt_services=0x7f080000;
