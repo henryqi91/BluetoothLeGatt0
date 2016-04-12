@@ -39,14 +39,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.SeekBar;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * For a given BLE device, this Activity provides the user interface to connect, display data,
@@ -61,19 +59,16 @@ public class DeviceControlActivity extends Activity {
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
     //UI
     private SeekBar speedBar,intensityBar;
-    private TextView speedBarValue,intensityBarValue,mRollValue,mPitchValue,mTempValue;
-
+    private TextView speedBarValue,intensityBarValue,
+            mRollValue,mPitchValue,mTempValue;
+    private Button ledSwitch;
+    private int pressFlag = 0;
     //BLE
     private Handler mRollHandler,mPitchHandler,mTempHandler,mDtHandler,mWriteHandler;
-    private TextView mConnectionState;
     private String mDeviceName;
     private String mDeviceAddress;
     private BluetoothLeService mBluetoothLeService;
     private boolean mConnected = false;
-    private BluetoothGattCharacteristic mNotifyCharacteristic;
-
-    private final String LIST_NAME = "NAME";
-    private final String LIST_UUID = "UUID";
 
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -93,9 +88,6 @@ public class DeviceControlActivity extends Activity {
             mBluetoothLeService = null;
         }
     };
-    // Notification
-//    private int mPitchTestValue = 130;
-    private int isToNotify = 0;
 
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
@@ -121,9 +113,6 @@ public class DeviceControlActivity extends Activity {
                 displayPitchData(intent.getStringExtra(BluetoothLeService.EXTRA_PITCH_DATA));
                 displayTempData(intent.getStringExtra(BluetoothLeService.EXTRA_TEMP_DATA));
             }
-//            else if (BluetoothLeService.ACTION_TONOTIFY.equals(action)){
-//                isToNotify = intent.getBooleanExtra(BluetoothLeService.EXTRA_TONOTIFY,true);
-//            }
         }
     };
 
@@ -139,12 +128,13 @@ public class DeviceControlActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.custom_layout);
 
+        //read
         mRollHandler = new Handler();
         mPitchHandler = new Handler();
         mTempHandler = new Handler();
-
+        //notify
         mDtHandler = new Handler();
-
+        //write
         mWriteHandler = new Handler();
 
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
@@ -168,11 +158,13 @@ public class DeviceControlActivity extends Activity {
             Log.d(TAG, "Connect request result=" + result);
         }
 
-        mDtHandler.removeCallbacks(mDtRunnable);
+        //mDtHandler.removeCallbacks(mDtRunnable);
+        mWriteHandler.postDelayed(mWriteRunnable, 200);
 
-        mTempHandler.postDelayed(mTempRunnable,200);
+        mTempHandler.postDelayed(mTempRunnable, 200);
         mRollHandler.postDelayed(mRollRunnable,250);
         mPitchHandler.postDelayed(mPitchRunnable, 300);
+
     }
 
     @Override
@@ -184,12 +176,12 @@ public class DeviceControlActivity extends Activity {
     @Override
     protected void onStop(){
         super.onStop();
-//        mDtHandler.post(mDtRunnable);
-        mWriteHandler.postDelayed(mWriteRunnable,2000);
+        //mDtHandler.postDelayed(mDtRunnable, 50);
+        mWriteHandler.removeCallbacks(mWriteRunnable, 200);
 
         mTempHandler.removeCallbacks(mTempRunnable);
-        mPitchHandler.removeCallbacks(mPitchRunnable);
         mRollHandler.removeCallbacks(mRollRunnable);
+        mPitchHandler.removeCallbacks(mPitchRunnable);
     }
 
     @Override
@@ -282,8 +274,10 @@ public class DeviceControlActivity extends Activity {
         @Override
         public void run() {
             try{
-                mBluetoothLeService.writeCharacteristic(0x12);
-                mWriteHandler.postDelayed(this, 3000);
+                mBluetoothLeService.writeCharacteristic(
+                        intensityBar.getProgress(),speedBar.getProgress());
+//                mBluetoothLeService.writeCharacteristic(intensityBar.getProgress());
+                mWriteHandler.postDelayed(this, 200);
                 Log.d("mWriteHandler", "Call on DCA thread");
             }catch(Exception e){
                 e.printStackTrace();
@@ -319,6 +313,7 @@ public class DeviceControlActivity extends Activity {
         }
     }
 
+
     private static IntentFilter makeGattUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
@@ -326,7 +321,7 @@ public class DeviceControlActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
         intentFilter.addAction(BluetoothLeService.ACTION_TONOTIFY);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_WRITETOSEND);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_SENT);
         return intentFilter;
     }
 
@@ -340,6 +335,8 @@ public class DeviceControlActivity extends Activity {
         mRollValue = (TextView) findViewById(R.id.rollBox);
         mPitchValue = (TextView) findViewById(R.id.pitchBox);
         mTempValue = (TextView) findViewById(R.id.tempBox);
+
+        ledSwitch = (Button)findViewById(R.id.ledSwitch);
 
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
@@ -388,4 +385,17 @@ public class DeviceControlActivity extends Activity {
         });
     }
 
+    private int isLedPressed(Button ledSwitch) {
+        if (ledSwitch.isPressed() == true) {
+            if (pressFlag == 0) {
+                pressFlag = 1;
+                return 1;
+            } else {
+                pressFlag = 0;
+                return 0;
+            }
+        } else {
+            return pressFlag;
+        }
+    }
 }

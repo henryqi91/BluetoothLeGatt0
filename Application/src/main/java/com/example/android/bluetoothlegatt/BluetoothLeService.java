@@ -65,8 +65,8 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
     public final static String ACTION_DATA_AVAILABLE =
             "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String ACTION_DATA_WRITETOSEND =
-            "com.example.bluetooth.le.ACTION_DATAWRITETOSEND";
+    public final static String ACTION_DATA_SENT =
+            "com.example.bluetooth.le.ACTION_DATA_SENT";
     public final static String ACTION_TONOTIFY =
             "com.example.bluetooth.le.ACTION_TONOTIFY";
 
@@ -76,11 +76,8 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.PITCH_DATA";
     public final static String EXTRA_TEMP_DATA =
             "com.example.bluetooth.le.TEMP_DATA";
-    public final static String EXTRA_TONOTIFY =
-            "com.example.bluetooth.le.TONOTIFY";
-
-    public final static UUID UUID_HEART_RATE_MEASUREMENT =
-            UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
+    public final static String EXTRA_DATA_SENT =
+            "com.exmaple.bluetooth.le.TEMP_DATA";
 
     public final static UUID UUID_ROLL_MEASUREMENT =
             UUID.fromString(SampleGattAttributes.ROLL_MEASUREMENT);
@@ -131,8 +128,8 @@ public class BluetoothLeService extends Service {
 
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
-                                         BluetoothGattCharacteristic characteristic,
-                                         int status) {
+                                         BluetoothGattCharacteristic characteristic, int status)
+        {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             }
@@ -142,7 +139,7 @@ public class BluetoothLeService extends Service {
         public void onCharacteristicWrite(
                 BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
-            broadcastUpdate(ACTION_DATA_WRITETOSEND, characteristic);
+            broadcastUpdate(ACTION_DATA_SENT, characteristic);
         }
 
         @Override
@@ -171,11 +168,25 @@ public class BluetoothLeService extends Service {
     private void broadcastUpdate(final String action,
                                  final BluetoothGattCharacteristic characteristic) {
         final Intent intent = new Intent(action);
-
+        //onWrite: check the characteristic's value to see if it is sent successfully
+        if(UUID_SAMPLE_CHARA.equals(characteristic.getUuid())) {
+            final byte[] dataTemp = characteristic.getValue();
+            if (dataTemp != null && dataTemp.length > 0) {
+                final StringBuilder stringBuilder = new StringBuilder(dataTemp.length);
+                short value = (short) (dataTemp[1] << 8 | dataTemp[0] & 0xff);
+                stringBuilder.append(String.format("%d " + value));
+                //celsius: \u2103; degree:\u00b0
+                intent.putExtra(EXTRA_DATA_SENT, new String(dataTemp) + "\n"
+                        + stringBuilder.toString());
+                sendBroadcast(intent);
+            }
+        }
+        //onDoubleTap
         if(characteristic.getUuid().equals(UUID_DOUBLE_TAP_CHARA)){
             wakeUpScr();
             toNotify();
         }
+        //onRead: temperature
         if (UUID_TEMP_MEASUREMENT.equals(characteristic.getUuid())) {
             final byte[] dataTemp = characteristic.getValue();
             if (dataTemp != null && dataTemp.length > 0) {
@@ -188,6 +199,7 @@ public class BluetoothLeService extends Service {
                 sendBroadcast(intent);
             }
         }
+        //onRead: pitch
         if(UUID_PITCH_MEASUREMENT.equals(characteristic.getUuid())) {
             final byte[] dataPitch = characteristic.getValue();
             if (dataPitch != null && dataPitch.length > 0) {
@@ -200,13 +212,12 @@ public class BluetoothLeService extends Service {
                 sendBroadcast(intent);
             }
         }
+        //onRead: roll
             if(UUID_ROLL_MEASUREMENT.equals(characteristic.getUuid())){
                 final byte[] dataRoll = characteristic.getValue();
                 if (dataRoll != null && dataRoll.length > 0) {
                     final StringBuilder stringBuilder = new StringBuilder(dataRoll.length);
                     short value = (short) (dataRoll[1] << 8 | dataRoll[0] & 0xff);
-//                    short newValue =(short) (value & 0xffff);
-//                    stringBuilder.append(String.format("%d.%d " + "\u00b0", newValue / 100, newValue % 100));
                     stringBuilder.append(String.format("%d.%d " + "\u00b0", value / 100, value % 100));
                     //celsius: \u2103; degree:\u00b0
                     intent.putExtra(EXTRA_ROLL_DATA, new String(dataRoll) + "\n"
@@ -236,7 +247,7 @@ public class BluetoothLeService extends Service {
 
     private final IBinder mBinder = new LocalBinder();
 
-
+    //get the bluetooth adapter
     public boolean initialize() {
         // For API level 18 and above, get a reference to BluetoothAdapter through
         // BluetoothManager.
@@ -256,7 +267,6 @@ public class BluetoothLeService extends Service {
 
         return true;
     }
-
 
     public boolean connect(final String address) {
         if (mBluetoothAdapter == null || address == null) {
@@ -308,34 +318,7 @@ public class BluetoothLeService extends Service {
         mBluetoothGatt = null;
     }
 
-    public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-        mBluetoothGatt.readCharacteristic(characteristic);
-    }
-
-    public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
-                                              boolean enabled) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-        mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-
-        // This is specific to Heart Rate Measurement.
-        if (UUID_PITCH_MEASUREMENT.equals(characteristic.getUuid())) {
-            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                    UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            mBluetoothGatt.writeDescriptor(descriptor);
-        }
-
-        //roll measurement
-    }
-
-//    /*Custom Read/write*/
+//      read Roll value
     public void readRollCharacteristic() {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -355,7 +338,7 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "Failed to read Roll characteristic");
         }
     }
-
+//      read Pitch value
     public void readPitchCharacteristic() {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -375,7 +358,7 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "Failed to read Pitch characteristic");
         }
     }
-
+//      read Temperature value
     public void readTempCharacteristic() {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -396,7 +379,8 @@ public class BluetoothLeService extends Service {
         }
     }
 
-    public void writeCharacteristic(int value) {
+    public void writeCharacteristic(int pwm, int speedRot) {
+//    public void writeCharacteristic(int pwm) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
@@ -408,23 +392,24 @@ public class BluetoothLeService extends Service {
             return;
         }
         /*get the write characteristic from the service*/
-        BluetoothGattCharacteristic mWriteCharacteristic = mCustomService.getCharacteristic(UUID_SAMPLE_SERVICE);
-
-        if(mWriteCharacteristic == null){
+        BluetoothGattCharacteristic mWriteChara = mCustomService.getCharacteristic(UUID_SAMPLE_CHARA);
+        if(mWriteChara == null){
             Log.w(TAG, "Custom BLE characteristic not found");
             return;
         }
-        BluetoothGattCharacteristic mWriteChara = mCustomService.getCharacteristic(
-                UUID_SAMPLE_CHARA);
 
-        byte[] values = new byte[1];
-        values[0] = (byte)(21 & 0xFF);
+        byte[] values = new byte[2];
+        values[0] = (byte)pwm;
+        values[1] = (byte)speedRot;
         mWriteChara.setValue(values);
+        mWriteChara.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+
         if(!mBluetoothGatt.writeCharacteristic(mWriteChara)){
             Log.w(TAG, "Failed to Write");
         }
     }
 
+    //double Tap characteristic's notify feature
     public void setDoubleTapCharacteristic(boolean enabled){
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -449,12 +434,15 @@ public class BluetoothLeService extends Service {
 
     }
 
+    //Function to power up the screen
     public void wakeUpScr(){
         PowerManager.WakeLock wl;
         PowerManager pm = (PowerManager)getSystemService(POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "TAG");
         wl.acquire();
     }
+
+    //Function to send a notification to the main screen
     protected void toNotify(){
             Intent intent = new Intent(this, DeviceControlActivity.class);
             PendingIntent pIntent = PendingIntent.getActivity(
@@ -472,4 +460,5 @@ public class BluetoothLeService extends Service {
 
             notiManager.notify(0,noti);
     }
+
 }

@@ -52,9 +52,4 @@ public class SampleGattAttributes {
         attributes.put(ROLL_MEASUREMENT, "roll measurement");
         attributes.put(DOUBLE_TAP_CHARA, "double tap notification");
     }
-
-    public static String lookup(String uuid, String defaultName) {
-        String name = attributes.get(uuid);
-        return name == null ? defaultName : name;
-    }
 }
